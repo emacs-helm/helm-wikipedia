@@ -52,13 +52,13 @@ This is a format string, don't forget the `%s'."
   (goto-char (point-min))
   (when (re-search-forward "^\\[.+\\[\\(.*\\)\\]\\]" nil t)
     (cl-loop for i across (aref (json-read-from-string (match-string 0)) 1)
-          collect i into result
-          finally return (or result
-                             (append
-                              result
-                              (list (cons (format "Search for '%s' on wikipedia"
-                                                  helm-pattern)
-                                          helm-pattern)))))))
+             collect i into result
+             finally return (or result
+                                (append
+                                 result
+                                 (list (cons (format "Search for '%s' on wikipedia"
+                                                     helm-pattern)
+                                             helm-pattern)))))))
 
 (defvar helm-wikipedia--summary-cache (make-hash-table :test 'equal))
 (defun helm-wikipedia-show-summary (input)
