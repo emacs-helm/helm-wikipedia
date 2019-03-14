@@ -12,7 +12,7 @@ This is a format string, don't forget the `%s'."
   :group 'helm-net)
 
 (defcustom helm-wikipedia-summary-url
-  "https://en.wikipedia.org/w/api.php?action=parse&format=json&prop=text&section=0&page=%s"
+  "https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&titles=%s&exintro=1&explaintext=1"
   "URL for getting the summary of a Wikipedia topic.
 This is a format string, don't forget the `%s'."
   :type 'string
@@ -93,37 +93,15 @@ Follows any redirections from Wikipedia, and stores results in
      request #'helm-wikipedia--parse-summary)))
 
 (defun helm-wikipedia--parse-summary ()
+  "Return plain-text rendering of article summary.
+Read from JSON in HTTP response buffer.  Should be called in
+`url-retrieve' response buffer."
   (goto-char (point-min))
-  (when (search-forward "{" nil t)
-    (let ((result (cdr (assq '*
-                              (assq 'text
-                                     (assq 'parse
-                                            (json-read-from-string
-                                             (buffer-substring-no-properties
-                                              (1- (point)) (point-max)))))))))
-      (when result
-        (if (string-match "<span class=\"redirectText\"><a href=[^>]+>\\([^<]+\\)" result)
-            (cons 'redirect (match-string 1 result))
-
-          ;; find the beginning of the summary text in the result
-
-          ;; check if there is a table before the summary and skip that
-          (when (or (string-match "</table>\\(\n<div.*?</div>\\)?\n<p>" result)
-                    ;; otherwise just find the first paragraph
-                    (string-match "<p>" result))
-            ;; remove cruft and do a simple formatting
-            (replace-regexp-in-string
-             "Cite error: .*" ""
-             (replace-regexp-in-string
-              "&#160;" ""
-              (replace-regexp-in-string
-               "\\[[^]]+\\]" ""
-               (replace-regexp-in-string
-                "<[^>]*>" ""
-                (replace-regexp-in-string
-                 "</p>\n<p>" "\n\n"
-                 (substring result (match-end 0)))))))))))))
-
+  (re-search-forward "\n\n")
+  (let* ((json (json-read))
+         (pages (let-alist json
+                  .query.pages)))
+    (alist-get 'extract (nth 0 pages))))
 
 (defvar helm-wikipedia-map
   (let ((map (copy-keymap helm-map)))
