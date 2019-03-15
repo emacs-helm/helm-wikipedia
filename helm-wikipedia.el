@@ -31,6 +31,14 @@ This is a format string, don't forget the `%s'."
   :type 'string
   :group 'helm-net)
 
+(defvar helm-wikipedia--summary-cache (make-hash-table :test 'equal))
+
+(defvar helm-wikipedia-map
+  (let ((map (copy-keymap helm-map)))
+    (define-key map (kbd "<C-return>") 'helm-wikipedia-show-summary-action)
+    map)
+  "Keymap for `helm-wikipedia-suggest'.")
+
 (defun helm-wikipedia-suggest-fetch ()
   "Fetch Wikipedia suggestions and return them as a list."
   (require 'json)
@@ -56,25 +64,25 @@ This is a format string, don't forget the `%s'."
                                                      helm-pattern)
                                              helm-pattern)))))))
 
-(defvar helm-wikipedia--summary-cache (make-hash-table :test 'equal))
-(defun helm-wikipedia-show-summary (input)
+(defun helm-wikipedia-show-summary (_candidate)
   "Show Wikipedia summary for INPUT in new buffer."
   (interactive)
   (let ((buffer (get-buffer-create "*helm wikipedia summary*"))
-        (summary (helm-wikipedia--get-summary input)))
+        (summary (helm-wikipedia--get-summary)))
     (with-current-buffer buffer
       (visual-line-mode)
       (erase-buffer)
       (insert summary)
       (pop-to-buffer (current-buffer))
       (goto-char (point-min)))))
+(put 'helm-wikipedia-show-summary 'helm-only t)
 
 (defun helm-wikipedia-persistent-action (candidate)
   (unless (string= (format "Search for '%s' on wikipedia"
                            helm-pattern)
                    (helm-get-selection nil t))
     (let ((buf (get-buffer-create "*helm wikipedia summary*"))
-          (result (helm-wikipedia--get-summary candidate)))
+          (result (helm-wikipedia--get-summary)))
       (if result
           (progn
             (with-current-buffer buf
@@ -86,9 +94,10 @@ This is a format string, don't forget the `%s'."
             (display-buffer buf))
         (message "No summary for %s" candidate)))))
 
-(defun helm-wikipedia--get-summary (candidate)
+(defun helm-wikipedia--get-summary ()
   "Return Wikipedia summary for CANDIDATE as string."
-  (gethash (helm-get-selection nil t) helm-wikipedia--summary-cache))
+  (with-helm-buffer
+    (gethash (helm-get-selection nil t) helm-wikipedia--summary-cache)))
 
 (defvar helm-source-wikipedia-suggest
   (helm-build-sync-source "Wikipedia Suggest"
