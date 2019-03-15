@@ -33,7 +33,7 @@ This is a format string, don't forget the `%s'."
   :group 'helm-net)
 
 (defcustom helm-wikipedia-summary-url
-  "https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&titles=%s&exintro=1&explaintext=1"
+  "https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&titles=%s&exintro=1&explaintext=1&redirects=1"
   "URL for getting the summary of a Wikipedia topic.
 This is a format string, don't forget the `%s'."
   :type 'string

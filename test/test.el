@@ -23,7 +23,15 @@ the query change."
 (ert-deftest helm-wikipedia--test-summary ()
   "Pass if Wikipedia summary for \"Emacs\" article seems to be correct.
 Passes if summary contains \"GNU Emacs\"."
-  (should (string-match "GNU Emacs"
-                        (helm-wikipedia--fetch-summary "Emacs"))))
+  (let ((helm-wikipedia--summary-cache (make-hash-table :test 'equal)))
+    (should (string-match "GNU Emacs"
+                          (helm-wikipedia--fetch-summary "Emacs")))))
+
+(ert-deftest helm-wikipedia--test-summary-with-redirect ()
+  "Pass if Wikipedia summary for \"Emacs Lisp Package Archive\" article seems to be correct.
+Passes if summary contains \"GNU Emacs\"."
+  (let ((helm-wikipedia--summary-cache (make-hash-table :test 'equal)))
+    (should (string-match "GNU Emacs"
+                          (helm-wikipedia--fetch-summary "Emacs Lisp Package Archive")))))
 
 (provide 'helm-wikipedia-test)
