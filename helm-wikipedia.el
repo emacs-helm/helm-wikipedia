@@ -50,19 +50,16 @@ This is a format string, don't forget the `%s'."
 (defun helm-wikipedia--parse-buffer ()
   (goto-char (point-min))
   (when (re-search-forward "\n\n" nil t)
-    (cl-loop with array = (json-read-from-string (buffer-substring-no-properties (point) (point-max)))
+    (cl-loop with array = (json-read-from-string
+                           (buffer-substring-no-properties (point) (point-max)))
              for str across (aref array 1)
              for n from 0
              collect (cons str (aref (aref array 3) n)) into cands
              and
              do (unless (gethash str helm-wikipedia--summary-cache)
-                  (puthash str (aref (aref array 2) n) helm-wikipedia--summary-cache))
-             finally return (or cands
-                                (append
-                                 cands
-                                 (list (cons (format "Search for '%s' on wikipedia"
-                                                     helm-pattern)
-                                             helm-pattern)))))))
+                  (puthash str (aref (aref array 2) n)
+                           helm-wikipedia--summary-cache))
+             finally return cands)))
 
 (defun helm-wikipedia-show-summary (_candidate)
   "Show Wikipedia summary for INPUT in new buffer."
@@ -77,22 +74,20 @@ This is a format string, don't forget the `%s'."
       (goto-char (point-min)))))
 (put 'helm-wikipedia-show-summary 'helm-only t)
 
-(defun helm-wikipedia-persistent-action (candidate)
-  (unless (string= (format "Search for '%s' on wikipedia"
-                           helm-pattern)
-                   (helm-get-selection nil t))
-    (let ((buf (get-buffer-create "*helm wikipedia summary*"))
-          (result (helm-wikipedia--get-summary)))
-      (if result
-          (progn
-            (with-current-buffer buf
-              (erase-buffer)
-              (setq cursor-type nil)
-              (insert result)
-              (fill-region (point-min) (point-max))
-              (goto-char (point-min)))
-            (display-buffer buf))
-        (message "No summary for %s" candidate)))))
+(defun helm-wikipedia-persistent-action (_candidate)
+  (let ((buf (get-buffer-create "*helm wikipedia summary*"))
+        (result (helm-wikipedia--get-summary))
+        (disp (helm-get-selection nil t)))
+    (if (and result (not (string= result "")))
+        (progn
+          (with-current-buffer buf
+            (erase-buffer)
+            (setq cursor-type nil)
+            (insert result)
+            (fill-region (point-min) (point-max))
+            (goto-char (point-min)))
+          (display-buffer buf))
+      (message "No summary for %s" disp))))
 
 (defun helm-wikipedia--get-summary ()
   "Return Wikipedia summary for CANDIDATE as string."
