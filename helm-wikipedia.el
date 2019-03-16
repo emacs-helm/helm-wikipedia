@@ -1,8 +1,9 @@
-;;; Wikipedia suggestions
-;;
-;;  Authors: Thierry Volpiatto, Adam Porter, et al
+;;; helm-wikipedia.el --- Wikipedia suggestions. -*- lexical-binding: t -*-
 
-;;; License:
+;; Copyright (C) 2012 ~ 2019 Thierry Volpiatto <thierry.volpiatto@gmail.com>
+
+;; Package-Requires: ((helm "1.5") (cl-lib "0.5") (emacs "24.1"))
+;; URL: https://github.com/emacs-helm/helm-wikipedia
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -19,11 +20,9 @@
 
 ;;; Code:
 
-;;;; Requirements
-
-(require 'json)
-
 (require 'helm-net)
+
+(declare-function json-read-from-string "json" (string))
 
 (defcustom helm-wikipedia-suggest-url
   "https://en.wikipedia.org/w/api.php?action=opensearch&search=%s"
@@ -32,97 +31,7 @@ This is a format string, don't forget the `%s'."
   :type 'string
   :group 'helm-net)
 
-(defcustom helm-wikipedia-summary-url
-  "https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&titles=%s&exintro=1&explaintext=1&redirects=1"
-  "URL for getting the summary of a Wikipedia topic.
-This is a format string, don't forget the `%s'."
-  :type 'string
-  :group 'helm-net)
-
-(declare-function json-read-from-string "json" (string))
-(defun helm-wikipedia-suggest-fetch ()
-  "Fetch Wikipedia suggestions and return them as a list."
-  (require 'json)
-  (let ((request (format helm-wikipedia-suggest-url
-                         (url-hexify-string helm-pattern))))
-    (helm-net--url-retrieve-sync
-     request #'helm-wikipedia--parse-buffer)))
-
-(defun helm-wikipedia--parse-buffer ()
-  (goto-char (point-min))
-  (when (re-search-forward "^\\[.+\\[\\(.*\\)\\]\\]" nil t)
-    (cl-loop for i across (aref (json-read-from-string (match-string 0)) 1)
-             collect i into result
-             finally return (or result
-                                (append
-                                 result
-                                 (list (cons (format "Search for '%s' on wikipedia"
-                                                     helm-pattern)
-                                             helm-pattern)))))))
-
 (defvar helm-wikipedia--summary-cache (make-hash-table :test 'equal))
-(defun helm-wikipedia-show-summary (input)
-  "Show Wikipedia summary for INPUT in new buffer."
-  (interactive)
-  (let ((buffer (get-buffer-create "*helm wikipedia summary*"))
-        (summary (helm-wikipedia--get-summary input)))
-    (with-current-buffer buffer
-      (visual-line-mode)
-      (erase-buffer)
-      (insert summary)
-      (pop-to-buffer (current-buffer))
-      (goto-char (point-min)))))
-
-(defun helm-wikipedia-persistent-action (candidate)
-  (unless (string= (format "Search for '%s' on wikipedia"
-                           helm-pattern)
-                   (helm-get-selection nil t))
-    (message "Fetching summary from Wikipedia...")
-    (let ((buf (get-buffer-create "*helm wikipedia summary*"))
-          (result (helm-wikipedia--get-summary candidate)))
-      (with-current-buffer buf
-        (erase-buffer)
-        (setq cursor-type nil)
-        (insert result)
-        (fill-region (point-min) (point-max))
-        (goto-char (point-min)))
-      (display-buffer buf))))
-
-(defun helm-wikipedia--get-summary (input)
-  "Return Wikipedia summary for INPUT as string.
-Follows any redirections from Wikipedia, and stores results in
-`helm-wikipedia--summary-cache'."
-  (let (result)
-    (while (progn
-             (setq result (or (gethash input helm-wikipedia--summary-cache)
-                              (puthash input
-                                       (helm-wikipedia--fetch-summary input)
-                                       helm-wikipedia--summary-cache)))
-             (when (and result
-                        (listp result))
-               (setq input (cdr result))
-               (message "Redirected to %s" input)
-               t)))
-    (unless result
-      (error "Error when getting summary."))
-    result))
-
-(defun helm-wikipedia--fetch-summary (input)
-  (let* ((request (format helm-wikipedia-summary-url
-                          (url-hexify-string input))))
-    (helm-net--url-retrieve-sync
-     request #'helm-wikipedia--parse-summary)))
-
-(defun helm-wikipedia--parse-summary ()
-  "Return plain-text rendering of article summary.
-Read from JSON in HTTP response buffer.  Should be called in
-`url-retrieve' response buffer."
-  (goto-char (point-min))
-  (re-search-forward "\n\n")
-  (let* ((json (json-read))
-         (pages (let-alist json
-                  .query.pages)))
-    (alist-get 'extract (nth 0 pages))))
 
 (defvar helm-wikipedia-map
   (let ((map (copy-keymap helm-map)))
@@ -130,13 +39,66 @@ Read from JSON in HTTP response buffer.  Should be called in
     map)
   "Keymap for `helm-wikipedia-suggest'.")
 
+(defun helm-wikipedia-suggest-fetch ()
+  "Fetch Wikipedia suggestions and return them as a list."
+  (require 'json)
+  (let ((request (format helm-wikipedia-suggest-url
+                         (url-hexify-string helm-pattern))))
+    (with-current-buffer (url-retrieve-synchronously request)
+      (helm-wikipedia--parse-buffer))))
+
+(defun helm-wikipedia--parse-buffer ()
+  (goto-char (point-min))
+  (when (re-search-forward "\n\n" nil t)
+    (cl-loop with array = (json-read-from-string
+                           (buffer-substring-no-properties (point) (point-max)))
+             for str across (aref array 1)
+             for n from 0
+             collect (cons str (aref (aref array 3) n)) into cands
+             and
+             do (unless (gethash str helm-wikipedia--summary-cache)
+                  (puthash str (aref (aref array 2) n)
+                           helm-wikipedia--summary-cache))
+             finally return cands)))
+
+(defun helm-wikipedia-show-summary (_candidate)
+  "Show Wikipedia summary for INPUT in new buffer."
+  (interactive)
+  (let ((buffer (get-buffer-create "*helm wikipedia summary*"))
+        (summary (helm-wikipedia--get-summary)))
+    (with-current-buffer buffer
+      (visual-line-mode)
+      (erase-buffer)
+      (insert summary)
+      (pop-to-buffer (current-buffer))
+      (goto-char (point-min)))))
+(put 'helm-wikipedia-show-summary 'helm-only t)
+
+(defun helm-wikipedia-persistent-action (_candidate)
+  (let ((buf (get-buffer-create "*helm wikipedia summary*"))
+        (result (helm-wikipedia--get-summary))
+        (disp (helm-get-selection nil t)))
+    (if (and result (not (string= result "")))
+        (progn
+          (with-current-buffer buf
+            (erase-buffer)
+            (setq cursor-type nil)
+            (insert result)
+            (fill-region (point-min) (point-max))
+            (goto-char (point-min)))
+          (display-buffer buf))
+      (message "No summary for %s" disp))))
+
+(defun helm-wikipedia--get-summary ()
+  "Return Wikipedia summary for CANDIDATE as string."
+  (with-helm-buffer
+    (gethash (helm-get-selection nil t) helm-wikipedia--summary-cache)))
+
 (defvar helm-source-wikipedia-suggest
   (helm-build-sync-source "Wikipedia Suggest"
     :candidates #'helm-wikipedia-suggest-fetch
     :action '(("Wikipedia" . (lambda (candidate)
-                               (helm-search-suggest-perform-additional-action
-                                helm-search-suggest-action-wikipedia-url
-                                candidate)))
+                               (helm-browse-url candidate)))
               ("Show summary in new buffer (C-RET)" . helm-wikipedia-show-summary))
     :persistent-action #'helm-wikipedia-persistent-action
     :persistent-help "show summary"
@@ -149,6 +111,7 @@ Read from JSON in HTTP response buffer.  Should be called in
   (interactive)
   (with-helm-alive-p
     (helm-exit-and-execute-action 'helm-wikipedia-show-summary)))
+(put 'helm-wikipedia-show-summary-action 'helm-only t)
 
 ;;;###autoload
 (defun helm-wikipedia-suggest ()
@@ -157,6 +120,6 @@ Read from JSON in HTTP response buffer.  Should be called in
   (helm :sources 'helm-source-wikipedia-suggest
         :buffer "*helm wikipedia*"))
 
-;;;; Footer
-
 (provide 'helm-wikipedia)
+
+;;; helm-wikipedia.el ends here
