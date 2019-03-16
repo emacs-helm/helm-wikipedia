@@ -1,8 +1,9 @@
-;;; Wikipedia suggestions
-;;
-;;  Authors: Thierry Volpiatto, Adam Porter, et al
+;;; helm-wikipedia.el --- Wikipedia suggestions -*- lexical-binding: t -*-
 
-;;; License:
+;; Authors: Thierry Volpiatto, Adam Porter, et al
+;; Copyright (C) 2012 ~ 2018 Thierry Volpiatto <thierry.volpiatto@gmail.com>
+;; Package-Requires: ((helm "1.5") (cl-lib "0.5") (emacs "24.1"))
+;; URL: https://github.com/emacs-helm/helm-wikipedia
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -18,8 +19,6 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Code:
-
-;;;; Requirements
 
 (require 'json)
 
@@ -157,6 +156,13 @@ Read from JSON in HTTP response buffer.  Should be called in
   (helm :sources 'helm-source-wikipedia-suggest
         :buffer "*helm wikipedia*"))
 
-;;;; Footer
 
 (provide 'helm-wikipedia)
+
+;; Local Variables:
+;; byte-compile-warnings: (not cl-functions obsolete)
+;; coding: utf-8
+;; indent-tabs-mode: nil
+;; End:
+
+;;; helm-wikipedia.el ends here
