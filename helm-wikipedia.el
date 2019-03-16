@@ -118,7 +118,7 @@ Follows any redirections from Wikipedia, and stores results in
 Read from JSON in HTTP response buffer.  Should be called in
 `url-retrieve' response buffer."
   (goto-char (point-min))
-  (re-search-forward "\n\n")
+  (re-search-forward "\n\n" nil t)
   (let* ((json (json-read))
          (pages (let-alist json
                   .query.pages)))
