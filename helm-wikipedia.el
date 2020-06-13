@@ -50,6 +50,7 @@ This is a format string, don't forget the `%s'."
      request #'helm-wikipedia--parse-buffer)))
 
 (defun helm-wikipedia--parse-buffer ()
+  "Parse wikipedia buffer."
   (goto-char (point-min))
   (when (re-search-forward "^\\[.+\\[\\(.*\\)\\]\\]" nil t)
     (cl-loop for i across (aref (json-read-from-string (match-string 0)) 1)
@@ -61,7 +62,8 @@ This is a format string, don't forget the `%s'."
                                                      helm-pattern)
                                              helm-pattern)))))))
 
-(defvar helm-wikipedia--summary-cache (make-hash-table :test 'equal))
+(defvar helm-wikipedia--summary-cache (make-hash-table :test 'equal)
+  "A temporary cache for wikipedia summary.")
 (defun helm-wikipedia-show-summary (input)
   "Show Wikipedia summary for INPUT in new buffer."
   (interactive)
@@ -75,6 +77,7 @@ This is a format string, don't forget the `%s'."
       (goto-char (point-min)))))
 
 (defun helm-wikipedia-persistent-action (candidate)
+  "Run PA on CANDIDATE for wikipedia source."
   (unless (string= (format "Search for '%s' on wikipedia"
                            helm-pattern)
                    (helm-get-selection nil t))
@@ -105,10 +108,11 @@ Follows any redirections from Wikipedia, and stores results in
                (message "Redirected to %s" input)
                t)))
     (unless result
-      (error "Error when getting summary."))
+      (error "Error when getting summary"))
     result))
 
 (defun helm-wikipedia--fetch-summary (input)
+  "Fetch wikipedia summary matching INPUT."
   (let* ((request (format helm-wikipedia-summary-url
                           (url-hexify-string input))))
     (helm-net--url-retrieve-sync
