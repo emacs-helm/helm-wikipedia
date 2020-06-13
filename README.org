@@ -1,0 +1,16 @@
+[[https://github.com/emacs-helm/helm-recoll/blob/master/LICENSE][file:http://img.shields.io/badge/license-GNU%20GPLv3-blue.svg]]
+[[http://stable.melpa.org/#/helm-recoll][file:http://stable.melpa.org/packages/helm-apt-badge.svg]]
+[[http://melpa.org/#/helm-recoll][file:http://melpa.org/packages/helm-apt-badge.svg]]
+
+* Helm interface to wikipedia suggestions
+
+Provides search suggestions and article extracts for Wikipedia.
+
+** Install
+
+You can get this package from Melpa with your Emacs package manager.
+M-x package-install RET helm-wikipedia RET
+
+** Usage
+
+M-x helm-wikipedia
