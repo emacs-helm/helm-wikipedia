@@ -44,6 +44,11 @@ This is a format string, don't forget the `%s'."
   :type 'string
   :group 'helm-net)
 
+(defcustom helm-wikipedia-input-idle-delay 0.6
+  "`helm-input-idle-delay' used for helm-wikipedia."
+  :type 'float
+  :group 'helm-net)
+
 (declare-function json-read-from-string "json" (string))
 (defun helm-wikipedia-suggest-fetch ()
   "Fetch Wikipedia suggestions and return them as a list."
@@ -163,8 +168,9 @@ Read from JSON in HTTP response buffer.  Should be called in
 (defun helm-wikipedia-suggest ()
   "Preconfigured `helm' for Wikipedia lookup with Wikipedia suggest."
   (interactive)
-  (helm :sources 'helm-source-wikipedia-suggest
-        :buffer "*helm wikipedia*"))
+  (let ((helm-input-idle-delay helm-wikipedia-input-idle-delay)) 
+    (helm :sources 'helm-source-wikipedia-suggest
+          :buffer "*helm wikipedia*")))
 
 
 (provide 'helm-wikipedia)
