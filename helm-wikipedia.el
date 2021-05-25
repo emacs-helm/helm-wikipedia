@@ -154,7 +154,7 @@ Read from JSON in HTTP response buffer.  Should be called in
               ("Show summary in new buffer (C-RET)" . helm-wikipedia-show-summary))
     :persistent-action #'helm-wikipedia-persistent-action
     :persistent-help "show summary"
-    :volatile t
+    :match-dynamic t
     :keymap helm-wikipedia-map
     :requires-pattern 3))
 
@@ -170,7 +170,8 @@ Read from JSON in HTTP response buffer.  Should be called in
   (interactive)
   (let ((helm-input-idle-delay helm-wikipedia-input-idle-delay)) 
     (helm :sources 'helm-source-wikipedia-suggest
-          :buffer "*helm wikipedia*")))
+          :buffer "*helm wikipedia*"
+          :input-idle-delay (max 0.4 helm-input-idle-delay))))
 
 
 (provide 'helm-wikipedia)
