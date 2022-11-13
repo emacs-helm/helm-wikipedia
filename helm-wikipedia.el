@@ -30,6 +30,8 @@
 
 (require 'helm-net)
 
+(defvar helm-wikipedia-history nil)
+
 (defcustom helm-wikipedia-suggest-url
   "https://en.wikipedia.org/w/api.php?action=opensearch&search=%s"
   "Url used for looking up Wikipedia suggestions.
@@ -167,7 +169,8 @@ Read from JSON in HTTP response buffer.  Should be called in
   (let ((helm-input-idle-delay helm-wikipedia-input-idle-delay)) 
     (helm :sources 'helm-source-wikipedia-suggest
           :buffer "*helm wikipedia*"
-          :input-idle-delay (max 0.4 helm-input-idle-delay))))
+          :input-idle-delay (max 0.4 helm-input-idle-delay)
+          :history 'helm-wikipedia-history)))
 
 
 (provide 'helm-wikipedia)
