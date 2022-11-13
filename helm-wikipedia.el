@@ -73,17 +73,20 @@ This is a format string, don't forget the `%s'."
 
 (defvar helm-wikipedia--summary-cache (make-hash-table :test 'equal)
   "A temporary cache for wikipedia summary.")
-(defun helm-wikipedia-show-summary (input)
+(defun helm-wikipedia-show-summary (input &optional display)
   "Show Wikipedia summary for INPUT in new buffer."
-  (interactive)
   (let ((buffer (get-buffer-create "*helm wikipedia summary*"))
-        (summary (helm-wikipedia--get-summary input)))
+        (summary (helm-wikipedia--get-summary input))
+        (inhibit-read-only t))
     (with-current-buffer buffer
-      (visual-line-mode)
       (erase-buffer)
+      (setq cursor-type nil)
       (insert summary)
+      (fill-region (point-min) (point-max))
       (pop-to-buffer (current-buffer))
-      (goto-char (point-min)))))
+      (goto-char (point-min))
+      (special-mode))
+    (when display (display-buffer buffer))))
 
 (defun helm-wikipedia-persistent-action (candidate)
   "Run PA on CANDIDATE for wikipedia source."
@@ -91,15 +94,7 @@ This is a format string, don't forget the `%s'."
                            helm-pattern)
                    (helm-get-selection nil t))
     (message "Fetching summary from Wikipedia...")
-    (let ((buf (get-buffer-create "*helm wikipedia summary*"))
-          (result (helm-wikipedia--get-summary candidate)))
-      (with-current-buffer buf
-        (erase-buffer)
-        (setq cursor-type nil)
-        (insert result)
-        (fill-region (point-min) (point-max))
-        (goto-char (point-min)))
-      (display-buffer buf))))
+    (helm-wikipedia-show-summary candidate t)))
 
 (defun helm-wikipedia--get-summary (input)
   "Return Wikipedia summary for INPUT as string.
@@ -163,6 +158,7 @@ Read from JSON in HTTP response buffer.  Should be called in
   (interactive)
   (with-helm-alive-p
     (helm-exit-and-execute-action 'helm-wikipedia-show-summary)))
+(put 'helm-wikipedia-show-summary-action 'helm-only t)
 
 ;;;###autoload
 (defun helm-wikipedia-suggest ()
