@@ -130,9 +130,9 @@ Read from JSON in HTTP response buffer.  Should be called in
 `url-retrieve' response buffer."
   (goto-char (point-min))
   (re-search-forward "\n\n" nil t)
-  (let* ((json (json-read))
-         (pages (let-alist json
-                  .query.pages)))
+  (let* ((alist (json-read))
+         (pages (helm-aand (cdr (assq 'query alist))
+                           (cdr (assq 'pages it)))))
     (alist-get 'extract (nth 0 pages))))
 
 (defvar helm-wikipedia-map
