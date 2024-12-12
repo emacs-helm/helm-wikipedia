@@ -51,6 +51,16 @@ This is a format string, don't forget the `%s'."
   :type 'float
   :group 'helm-net)
 
+(defcustom helm-wikipedia-actions
+  '(("Wikipedia" . (lambda (candidate)
+                     (helm-search-suggest-perform-additional-action
+                      helm-search-suggest-action-wikipedia-url
+                      candidate)))
+    ("Show summary in new buffer (C-RET)" . helm-wikipedia-show-summary))
+  "List of actions for sx-helm sources."
+  :group 'helm-net
+  :type '(alist :key-type string :value-type function))
+
 (declare-function json-read-from-string "json" (string))
 (defun helm-wikipedia-suggest-fetch ()
   "Fetch Wikipedia suggestions and return them as a list."
@@ -144,11 +154,7 @@ Read from JSON in HTTP response buffer.  Should be called in
 (defvar helm-source-wikipedia-suggest
   (helm-build-sync-source "Wikipedia Suggest"
     :candidates #'helm-wikipedia-suggest-fetch
-    :action '(("Wikipedia" . (lambda (candidate)
-                               (helm-search-suggest-perform-additional-action
-                                helm-search-suggest-action-wikipedia-url
-                                candidate)))
-              ("Show summary in new buffer (C-RET)" . helm-wikipedia-show-summary))
+    :action 'helm-wikipedia-actions
     :persistent-action #'helm-wikipedia-persistent-action
     :persistent-help "show summary"
     :match-dynamic t
